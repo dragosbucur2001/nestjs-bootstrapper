@@ -11,42 +11,39 @@ dotenv.config();
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService
-  ) { }
+  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
 
-  async login(loginUserDto: LoginUserDto) {
-    const { email, password } = loginUserDto;
-    let user = await this.prisma.user.findFirst({
-      where: { email },
-    });
+  async login({ email, password }: LoginUserDto) {
+    const user = await this.prisma.user.findFirst({ where: { email } });
 
-    if (!user || !(await bcrypt.compare(password, user.password)))
+    if (!user || !bcrypt.compareSync(password, user.password))
       throw new HttpException('Wrong credentials', HttpStatus.BAD_REQUEST);
 
     return this.makeJwtObj(user);
   }
 
   async register({ email, password }: RegisterUserDto) {
-    password = await bcrypt.hash(password, process.env.ROUNDS);
+    password = bcrypt.hashSync(password, 10);
     try {
-      const user = await this.prisma.user.create({ data: { email, password, role: Role.USER } });
+      const user: User = await this.prisma.user.create({
+        data: { email, password, role: Role.USER },
+      });
       return this.makeJwtObj(user);
     } catch {
-      throw new HttpException('Email already in use', HttpStatus.CONFLICT)
+      throw new HttpException('Email already in use', HttpStatus.CONFLICT);
     }
   }
 
-  private makeJwtObj({ email, role }: User) {
+  private makeJwtObj({ id, email, role }: User) {
     return {
-      'ttl': process.env.JWT_TTL,
-      'token': this.jwtService.sign({
+      ttl: process.env.JWT_TTL,
+      token: this.jwtService.sign({
         user: {
+          id,
           email,
-          role
-        }
-      })
+          role,
+        },
+      }),
     };
   }
 }

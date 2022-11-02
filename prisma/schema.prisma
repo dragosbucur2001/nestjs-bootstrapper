@@ -6,13 +6,20 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 enum Role {
   ADMIN
+  COMPANY
   USER
+}
+
+enum CompanyContract {
+  BRONZE
+  SILVER
+  GOLD
 }
 
 model User {
@@ -20,8 +27,23 @@ model User {
   email      String   @unique
   password   String
   isVerified Boolean  @default(false) @map("is_verified")
-  role       Role
+  role       Role     @default(USER)
   createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model Company {
+  id            Int    @id @default(autoincrement())
+  name          String
+  descriptionRo String @map("description_ro")
+  descriptionEn String @map("description_en")
+  logoPath      String @map("logoPath")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  contract CompanyContract
+
+  @@map("companies")
 }
